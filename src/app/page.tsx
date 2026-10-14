@@ -1,69 +1,117 @@
-import Image from "next/image";
+import { getProducts, getCategories } from "@/lib/api";
+import CategoryFilter from "@/components/CategoryFilter";
+import ProductCardHome from "@/components/ProductCardHome";
+import Marquee from "@/components/Marquee";
+import Link from "next/link";
 
-export default function Home() {
+export default async function HomePage() {
+  const products = await getProducts();
+  const categories = await getCategories();
+
+  const priceUp = products.filter((p) => p.today > p.yesterday && p.yesterday > 0);
+  const priceDown = products.filter((p) => p.today < p.yesterday && p.yesterday > 0);
+
+  const today = new Date().toLocaleDateString("bn-BD", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="space-y-0">
+      <Marquee />
+      <section className="bg-gradient-to-br from-green-50 via-emerald-50 to-white border-b border-green-100 px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-8">
+          <div className="flex-1">
+            <p className="text-sm text-green-700 font-medium mb-2">{today}</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-3">
+              আজকের বাজারের দাম<br />এক নজরে
+            </h1>
+            <p className="text-gray-500 text-sm leading-relaxed mb-6 max-w-md">
+              চাল, ডাল, তেল, মাছি, মাংস, সবজি, ডিম ও মশলা — বাংলাদেশের প্রতিটি
+              জেলার আজকের হালনাগাদ বাজার দর এক জায়গায়।
+            </p>
+            <Link
+              href="#all-products"
+              className="inline-block bg-green-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-green-700 transition shadow-sm"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              বাজার দেখুন
+            </Link>
+          </div>
+          <div className="hidden md:flex text-9xl select-none flex-shrink-0">
+            🧺
+          </div>
+        </div>
+      </section>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+       
+        <CategoryFilter categories={categories} />
+
+       
+        {priceUp.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-red-500 text-lg">📈</span>
+              <h2 className="text-lg font-bold text-gray-800">আজকের দাম বেড়েছে</h2>
+              <span className="ml-auto text-xs text-gray-400 bg-red-50 text-red-400 px-2 py-0.5 rounded-full font-medium">
+                {priceUp.length}টি পণ্য
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {priceUp.slice(0, 6).map((product) => (
+                <ProductCardHome
+                  key={product._id || product.id || product.slug}
+                  product={product}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Price Down Section */}
+        {priceDown.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-green-500 text-lg">📉</span>
+              <h2 className="text-lg font-bold text-gray-800">আজকের দাম কমেছে</h2>
+              <span className="ml-auto text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-medium">
+                {priceDown.length}টি পণ্য
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {priceDown.slice(0, 6).map((product) => (
+                <ProductCardHome
+                  key={product._id || product.id || product.slug}
+                  product={product}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* All Products Section */}
+        <section id="all-products">
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-lg font-bold text-gray-800">সব পণ্য</h2>
+            <span className="text-xs text-gray-400">
+              — সকল ক্যাটাগরির আজকের বাজার দর
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mb-4">
+            মোট {products.length}টি পণ্যের তথ্য পাওয়া গেছে
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {products.map((product) => (
+              <ProductCardHome
+                key={product._id || product.id || product.slug}
+                product={product}
+              />
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
