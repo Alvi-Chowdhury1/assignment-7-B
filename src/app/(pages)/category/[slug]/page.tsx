@@ -9,14 +9,75 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-function makeSlug(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-");
+function normalize(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
 }
 
-export default async function CategorySlugPage({
+function makeSlug(value: unknown): string {
+  return normalize(value)
+    .replace(/[^a-z0-9\u0080-\uFFFF]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getCategoryIdentifiers(category: Category): string[] {
+  return [
+    category.id,
+    category._id,
+    category.slug,
+    category.name,
+    category.nameBn,
+  ]
+    .filter((value) => value !== undefined && value !== null)
+    .flatMap((value) => [normalize(value), makeSlug(value)])
+    .filter(Boolean);
+}
+
+function productMatchesCategory(
+  product: Product,
+  category: Category
+): boolean {
+  const record = product as unknown as Record<string, unknown>;
+  const identifiers = new Set(getCategoryIdentifiers(category));
+  const values: unknown[] = [
+    record.categoryId,
+    record.categorySlug,
+    record.categoryName,
+    record.categoryNameBn,
+    record.category,
+  ];
+
+  const categoryValue = record.category;
+
+  if (
+    categoryValue !== null &&
+    typeof categoryValue === "object"
+  ) {
+    const nested = categoryValue as Record<string, unknown>;
+
+    values.push(
+      nested.id,
+      nested._id,
+      nested.slug,
+      nested.name,
+      nested.nameBn
+    );
+  }
+
+  return values.some((value) => {
+    if (value === null || value === undefined) {
+      return false;
+    }
+
+    const text = normalize(value);
+
+    return (
+      identifiers.has(text) ||
+      identifiers.has(makeSlug(text))
+    );
+  });
+}
+
+export default async function CategoryPage({
   params,
 }: PageProps) {
   const { slug } = await params;
@@ -26,128 +87,83 @@ export default async function CategorySlugPage({
     getProducts(),
   ]);
 
-  const category = categories.find((item) => {
-    const raw = item as Category & {
-      slug?: string;
-    };
+  const selectedCategory = categories.find((category) => {
+    const identifiers = getCategoryIdentifiers(category);
 
-    return [
-      raw.slug,
-      String(raw.id),
-      String(raw.name),
-      String(raw.nameBn),
-    ].some(
-      (value) =>
-        value &&
-        (value.toLowerCase() === slug.toLowerCase() ||
-          makeSlug(value) === slug.toLowerCase())
+    return (
+      identifiers.includes(normalize(slug)) ||
+      identifiers.includes(makeSlug(slug))
     );
   });
 
-  if (!category) {
+  if (!selectedCategory) {
     notFound();
   }
 
-  const selectedCategory = category as Category & {
-    slug?: string;
-  };
-
-  const products = allProducts.filter((item) => {
-    const product = item as Product & {
-      category?: string | number | {
-        id?: string | number;
-        _id?: string;
-        slug?: string;
-        name?: string;
-        nameBn?: string;
-      };
-      categoryId?: string | number;
-      categorySlug?: string;
-      categoryName?: string;
-    };
-
-    const value = product.category;
-
-    const categoryValues =
-      value && typeof value === "object"
-        ? [
-            value.id,
-            value._id,
-            value.slug,
-            value.name,
-            value.nameBn,
-          ]
-        : [value];
-
-    categoryValues.push(
-      product.categoryId,
-      product.categorySlug,
-      product.categoryName
-    );
-
-    const identifiers = [
-      selectedCategory.id,
-      selectedCategory.slug,
-      selectedCategory.name,
-      selectedCategory.nameBn,
-    ]
-      .filter(Boolean)
-      .map((value) => String(value).toLowerCase());
-
-    return categoryValues.some((value) => {
-      if (value === undefined || value === null) {
-        return false;
-      }
-
-      const text = String(value).toLowerCase();
-
-      return identifiers.includes(text) ||
-        identifiers.includes(makeSlug(text));
-    });
-  });
+  const products = allProducts.filter((product) =>
+    productMatchesCategory(product, selectedCategory)
+  );
 
   return (
-    <main className="min-h-screen bg-[#f0f5f0] px-4 py-8">
+    <main className="min-h-screen bg-[#f5f8f5] px-4 py-10 sm:px-6">
       <div className="mx-auto max-w-7xl">
         <Link
           href="/category"
-          className="mb-6 inline-block text-green-700 hover:underline"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-green-700 hover:text-green-900"
         >
-          ← সব ক্যাটাগরি
+          <span aria-hidden="true">←</span>
+          সব ক্যাটাগরি
         </Link>
 
-        <h1 className="mb-3 text-3xl font-bold text-green-700">
-          {category.nameBn || category.name}
-        </h1>
+        <section className="mb-8 rounded-2xl border border-green-100 bg-white p-6 shadow-sm sm:p-8">
+          <p className="mb-2 text-sm font-semibold text-green-700">
+            বাংলা বাজার
+          </p>
 
-        <p className="mb-8 text-gray-600">
-          এই ক্যাটাগরির সকল পণ্যের বাজার দর দেখুন।
-        </p>
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+            {selectedCategory.nameBn || selectedCategory.name}
+          </h1>
+
+          <p className="mt-3 text-sm leading-6 text-gray-600">
+            এই ক্যাটাগরির পণ্যের আজকের বাজার দর দেখুন এবং
+            গতকালের দামের সঙ্গে তুলনা করুন।
+          </p>
+
+          <div className="mt-5 inline-flex rounded-full bg-green-50 px-4 py-2 text-sm font-medium text-green-800">
+            মোট পণ্য: {products.length}টি
+          </div>
+        </section>
 
         {products.length === 0 ? (
-          <div className="rounded-xl bg-white p-8 text-center shadow-sm">
-            <p className="text-lg font-semibold text-gray-700">
-              এই ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।
-            </p>
-            <p className="mt-2 text-sm text-gray-500">
-              API-তে পণ্যের ক্যাটাগরি ফিল্ড পরীক্ষা করুন।
-            </p>
-          </div>
-        ) : (
-          <>
-            <p className="mb-5 text-sm text-gray-600">
-              মোট পণ্য: {products.length}
+          <section className="rounded-2xl border border-gray-200 bg-white px-6 py-16 text-center">
+            <div className="mb-4 text-4xl" aria-hidden="true">
+              🧺
+            </div>
+
+            <h2 className="text-xl font-bold text-gray-900">
+              এই ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি
+            </h2>
+
+            <p className="mt-2 text-sm text-gray-600">
+              অন্য ক্যাটাগরি দেখুন অথবা পরে আবার চেষ্টা করুন।
             </p>
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {products.map((product) => (
-                <ProductCard
-                  key={String(product.id)}
-                  product={product}
-                />
-              ))}
-            </div>
-          </>
+            <Link
+              href="/category"
+              className="mt-6 inline-flex rounded-lg bg-green-700 px-5 py-3 font-semibold text-white transition hover:bg-green-800"
+            >
+              সব ক্যাটাগরি দেখুন
+            </Link>
+          </section>
+        ) : (
+          <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {products.map((product) => (
+              <ProductCard
+                key={String(product.id)}
+                product={product}
+              />
+            ))}
+          </section>
         )}
       </div>
     </main>

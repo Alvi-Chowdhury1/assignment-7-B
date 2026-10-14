@@ -1,10 +1,13 @@
 
-import Link from "next/link";
+
 import { getProducts } from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
+import type { Product } from "@/types";
+import Link from "next/link";
+
 
 export default async function ProductPage() {
-  let products = [];
+ let products: Product[] = [];
 
   try {
     products = await getProducts();
