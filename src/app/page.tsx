@@ -70,7 +70,7 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* Price Down Section */}
+      
         {priceDown.length > 0 && (
           <section>
             <div className="flex items-center gap-2 mb-4">
@@ -91,7 +91,6 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* All Products Section */}
         <section id="all-products">
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-lg font-bold text-gray-800">সব পণ্য</h2>

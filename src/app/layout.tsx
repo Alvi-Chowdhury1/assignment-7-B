@@ -22,14 +22,18 @@ export default function RootLayout({
   return (
     <html
       lang="bn"
+      data-theme="light"
       className={`${notoSerifBengali.className} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-slate-50 text-gray-900">
         <Navbar />
-        <main className="flex-1">{children}</main>
-        <footer className="w-full border-t border-gray-200 text-center text-sm text-gray-500 py-6 px-4">
-          © 2026 Bazar Dor. সর্বস্বত্ব সংরক্ষিত।
-        </footer>
+
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex flex-col">
+          <main className="flex-1 py-6">{children}</main>
+          <footer className="py-6 border-t border-gray-200 text-center text-sm text-gray-500">
+            © 2026 Bazar Dor. সর্বস্বত্ব সংরক্ষিত।
+          </footer>
+        </div>
       </body>
     </html>
   );

@@ -13,7 +13,7 @@ body {
   animation: marquee 40s linear infinite;
 }
 
-/* react-marquee-text styles */
+
 .react-marquee-text {
   display: flex;
   overflow: hidden;
